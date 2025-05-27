@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      background: transparent;
+    }
+    #overlay {
+      padding: 10px;
+      font-weight: bold;
+      text-shadow: 2px 2px 6px #000;
+      user-select: none;
+      font-size: 20px;
+      line-height: 1.6;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .emoji {
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="row"><span class="emoji">🕒</span><span id="time">--:--</span></div>
+    <div class="row"><span class="emoji">🗺️</span><span id="location">Loading...</span></div>
+    <div class="row"><span class="emoji">🌥</span><span id="condition">--</span></div>
+    <div class="row"><span class="emoji">🌡</span><span id="temperature">--°F</span></div>
+  </div>
+
+  <script>
+    async function updateOverlay() {
+      const openWeatherApiKey = "e9b4f16a2a8f9f682f961e4c5c9abbe2";
+
+      const timeEl = document.getElementById("time");
+      const locationEl = document.getElementById("location");
+      const conditionEl = document.getElementById("condition");
+      const tempEl = document.getElementById("temperature");
+
+      // ✅ Toggle this to true to use custom location
+      const useCustomLocation = true;
+
+      // ✅ Custom settings
+      const customCity = "Los Angeles";
+      const customCountry = "USA";
+      const customTimezone = "America/Los_Angeles";
+
+      const countryAbbreviations = {
+        "US": "USA", "GB": "UK", "CA": "CAN",
+        "AU": "AUS", "DE": "DEU", "FR": "FRA", "IN": "IND"
+      };
+
+      try {
+        let lat, lon, region, country, timezone;
+
+        if (useCustomLocation) {
+          const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(customCity)},${customCountry}&limit=1&appid=${openWeatherApiKey}`);
+          const geoData = await geoRes.json();
+
+          if (!geoData[0]) throw new Error("Invalid location");
+
+          lat = geoData[0].lat;
+          lon = geoData[0].lon;
+          region = geoData[0].name;
+          country = customCountry;
+          timezone = customTimezone;
+        } else {
+          const ipRes = await fetch("https://ipapi.co/json/");
+          const ipData = await ipRes.json();
+
+          lat = ipData.latitude;
+          lon = ipData.longitude;
+          region = ipData.region;
+          const code = ipData.country_code;
+          country = countryAbbreviations[code] || code;
+          timezone = ipData.timezone;
+        }
+
+        const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${openWeatherApiKey}`);
+        const weatherData = await weatherRes.json();
+
+        const tempF = Math.round(weatherData.main.temp);
+        const condition = capitalize(weatherData.weather[0].description);
+
+        setInterval(() => {
+          const now = new Date();
+          const formattedTime = new Intl.DateTimeFormat("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+            timeZone: timezone
+          }).format(now);
+          timeEl.textContent = formattedTime;
+        }, 1000);
+
+        locationEl.textContent = `${region}, ${country}`;
+        conditionEl.textContent = condition;
+        tempEl.textContent = `${tempF}°F`;
+
+      } catch (e) {
+        locationEl.textContent = "Unable to load location.";
+        conditionEl.textContent = "--";
+        tempEl.textContent = "--°F";
+      }
+
+      function capitalize(text) {
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      }
+    }
+
+    updateOverlay();
+  </script>
+</body>
+</html>

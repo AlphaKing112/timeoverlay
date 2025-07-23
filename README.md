@@ -21,11 +21,10 @@ A real-time, remotely controlled overlay for OBS (or any stream) that displays y
   ```sh
   cp config.example.js config.js
   ```
-- Edit `config.js` and input your own API keys for OpenWeather, TimeZoneDB, and Mapbox:
+- Edit `config.js` and input your own API keys for OpenWeather and Mapbox:
   ```js
   window.OVERLAY_CONFIG = {
     openWeatherApiKey: "YOUR_OPENWEATHER_API_KEY",
-    timezoneDbApiKey: "YOUR_TIMEZONEDB_API_KEY",
     mapboxApiKey: "YOUR_MAPBOX_API_KEY"
   };
   ```
@@ -76,12 +75,17 @@ Create a file named `config.js` in your project root (or copy and rename `config
 ```js
 window.OVERLAY_CONFIG = {
   openWeatherApiKey: "YOUR_OPENWEATHER_API_KEY",
-  timezoneDbApiKey: "YOUR_TIMEZONEDB_API_KEY",
   mapboxApiKey: "YOUR_MAPBOX_API_KEY"
 };
 ```
 
 **Do not commit your real API keys to public repositories.**
+
+---
+
+## How Local Time Works
+
+The overlay uses the `timezone` offset provided by the OpenWeather API to calculate and display the correct local time for the selected city or RTIRL location. **No separate timezone API is needed.**
 
 ---
 

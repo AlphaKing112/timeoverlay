@@ -15,20 +15,30 @@ A real-time, remotely controlled overlay for OBS (or any stream) that displays y
 
 ## Quick Start
 
-### 1. **Deploy the Cloudflare Worker Backend**
+### 1. **Clone the Repo and Set Up API Keys**
 - Clone this repo (or your fork)
-- Follow the instructions in `overlay-remote/` to deploy the Worker (see below)
-- The Worker will provide an API endpoint (e.g. `https://your-worker.workers.dev/overlay`)
+- Copy `config.example.js` to `config.js`:
+  ```sh
+  cp config.example.js config.js
+  ```
+- Edit `config.js` and input your own API keys for OpenWeather, TimeZoneDB, and Mapbox:
+  ```js
+  window.OVERLAY_CONFIG = {
+    openWeatherApiKey: "YOUR_OPENWEATHER_API_KEY",
+    timezoneDbApiKey: "YOUR_TIMEZONEDB_API_KEY",
+    mapboxApiKey: "YOUR_MAPBOX_API_KEY"
+  };
+  ```
 
 ### 2. **Deploy the Overlay to GitHub Pages**
-- Only upload the static files: `index.html`, `settings.html`, and any CSS/JS/images
+- Only upload the static files: `index.html`, `settings.html`, `config.js`, and any CSS/JS/images
 - Do **not** upload the `overlay-remote/` directory or dev files
 - Enable GitHub Pages in your repo settings (set source to `/root` or `/docs`)
 - Your overlay will be live at `https://yourusername.github.io/yourrepo/`
 
 ### 3. **Configure the Overlay**
 - Open `settings.html` from any device
-- Enter a city (e.g. `Paris, FR`) or your RTIRL key and save
+- Enter a city (e.g. `Paris`) or your RTIRL key and save
 - The overlay (`index.html`) will update automatically in OBS or any browser
 
 ### 4. **Add to OBS**
@@ -56,6 +66,22 @@ A real-time, remotely controlled overlay for OBS (or any stream) that displays y
    wrangler deploy
    ```
 3. Use the Worker endpoint (e.g. `https://your-worker.workers.dev/overlay`) in your overlay and settings pages.
+
+---
+
+## Example API Key Config File
+
+Create a file named `config.js` in your project root (or copy and rename `config.example.js`):
+
+```js
+window.OVERLAY_CONFIG = {
+  openWeatherApiKey: "YOUR_OPENWEATHER_API_KEY",
+  timezoneDbApiKey: "YOUR_TIMEZONEDB_API_KEY",
+  mapboxApiKey: "YOUR_MAPBOX_API_KEY"
+};
+```
+
+**Do not commit your real API keys to public repositories.**
 
 ---
 

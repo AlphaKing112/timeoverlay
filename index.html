@@ -44,6 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@rtirl/api@latest/lib/index.min.js"></script>
 </head>
 <body>
+  <script src="config.js"></script>
   <div id="overlay">
     <div class="row"><span class="emoji">🕒</span><span id="time">--:--</span></div>
     <div class="row"><img id="flagImg" src="https://flagcdn.com/unknown.svg" alt="Flag" style="width:24px;height:24px;border-radius:3px;object-fit:cover;background:#222;margin-right:6px;" /><span id="location">Loading...</span></div>
@@ -52,8 +53,8 @@
   </div>
 
   <script>
-    const openWeatherApiKey = "e9b4f16a2a8f9f682f961e4c5c9abbe2"; // Replace with your OpenWeather API key
-    const timezoneDbApiKey = "V77GZ15FNYX4"; // Replace with your TimeZoneDB API key
+    const openWeatherApiKey = window.OVERLAY_CONFIG.openWeatherApiKey;
+    const timezoneDbApiKey = window.OVERLAY_CONFIG.timezoneDbApiKey;
     const workerEndpoint = 'https://overlay-remote.roboticgamer302.workers.dev/overlay';
 
     let currentTimezone = "UTC";
@@ -138,20 +139,38 @@
       }
     }
 
-    async function updateOverlayWithCity(city) {
+    async function updateOverlayWithCity(city, lat = null, lon = null) {
       const locationEl = document.getElementById("location");
+      const flagImg = document.getElementById("flagImg");
       const conditionEl = document.getElementById("condition");
       const tempEl = document.getElementById("temperature");
       try {
-        // Geocode city to lat/lon
-        const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${openWeatherApiKey}`);
-        const geoData = await geoRes.json();
-        if (!geoData.length) throw new Error("City not found");
-        const { lat, lon, name, country } = geoData[0];
-        setFlagImage(country);
-        lastLat = lat;
-        lastLon = lon;
-        await updateOverlayWithLocation(lat, lon);
+        let latitude = lat;
+        let longitude = lon;
+        let displayName = city;
+        let country = null;
+        // If lat/lon provided (from Mapbox), use them
+        if (latitude !== null && longitude !== null) {
+          // Try to extract country code from displayName (last part after comma)
+          const parts = city.split(",");
+          country = parts[parts.length - 1].trim();
+          locationEl.textContent = displayName;
+          setFlagImage(country);
+        } else {
+          // Fallback: geocode with OpenWeather
+          const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${openWeatherApiKey}`);
+          const geoData = await geoRes.json();
+          if (!geoData.length) throw new Error("City not found");
+          latitude = geoData[0].lat;
+          longitude = geoData[0].lon;
+          displayName = `${geoData[0].name}, ${geoData[0].country}`;
+          country = geoData[0].country;
+          locationEl.textContent = displayName;
+          setFlagImage(country);
+        }
+        lastLat = latitude;
+        lastLon = longitude;
+        await updateOverlayWithLocation(latitude, longitude);
       } catch (e) {
         locationEl.textContent = "Unable to load city.";
         setFlagImage(null);
@@ -177,7 +196,7 @@
         lastValue = data;
 
         if (data.mode === 'manual' && data.city) {
-          updateOverlayWithCity(data.city);
+          updateOverlayWithCity(data.city, data.lat, data.lon);
           startTimeUpdater();
         } else if (data.mode === 'rtirl' && data.key && typeof RealtimeIRL !== "undefined") {
           // Remove previous listener if any
@@ -210,8 +229,8 @@
 
     // Initial fetch
     fetchAndUpdateOverlay();
-    // Poll every 5 seconds
-    setInterval(fetchAndUpdateOverlay, 5000);
+    // Poll every 2 seconds for faster updates
+    setInterval(fetchAndUpdateOverlay, 2000);
   </script>
 </body>
 </html>

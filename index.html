@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      background: transparent;
+      overflow-x: hidden;
+    }
+    #overlay {
+      padding: 10px;
+      font-weight: bold;
+      text-shadow: 2px 2px 6px #000;
+      user-select: none;
+      font-size: 20px;
+      line-height: 1.6;
+      max-width: 95vw;
+      box-sizing: border-box;
+      word-break: break-word;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .emoji {
+      font-size: 20px;
+    }
+    @media (max-width: 600px) {
+      #overlay {
+        font-size: 16px;
+        padding: 6px;
+      }
+      .emoji {
+        font-size: 16px;
+      }
+    }
+  </style>
+  <!-- Add RealtimeIRL API -->
+  <script src="https://cdn.jsdelivr.net/npm/@rtirl/api@latest/lib/index.min.js"></script>
+</head>
+<body>
+  <div id="overlay">
+    <div class="row"><span class="emoji">🕒</span><span id="time">--:--</span></div>
+    <div class="row"><img id="flagImg" src="https://flagcdn.com/unknown.svg" alt="Flag" style="width:24px;height:24px;border-radius:3px;object-fit:cover;background:#222;margin-right:6px;" /><span id="location">Loading...</span></div>
+    <div class="row"><span class="emoji">🌥</span><span id="condition">--</span></div>
+    <div class="row"><span class="emoji">🌡</span><span id="temperature">--°F</span></div>
+  </div>
+
+  <script>
+    const openWeatherApiKey = "e9b4f16a2a8f9f682f961e4c5c9abbe2"; // Replace with your OpenWeather API key
+    const timezoneDbApiKey = "V77GZ15FNYX4"; // Replace with your TimeZoneDB API key
+    const workerEndpoint = 'https://overlay-remote.roboticgamer302.workers.dev/overlay';
+
+    let currentTimezone = "UTC";
+    let timeIntervalId = null;
+    let lastLat = null;
+    let lastLon = null;
+    let lastMode = null;
+    let lastValue = null;
+    let rtirlListener = null;
+
+    function capitalize(text) {
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    // Set flag image from country code using flagcdn.com
+    function setFlagImage(countryCode) {
+      const flagImg = document.getElementById("flagImg");
+      if (countryCode && countryCode.length === 2) {
+        flagImg.src = `https://flagcdn.com/${countryCode.toLowerCase()}.svg`;
+        flagImg.alt = countryCode.toUpperCase() + " flag";
+      } else {
+        flagImg.src = "https://flagcdn.com/unknown.svg";
+        flagImg.alt = "Unknown flag";
+      }
+    }
+
+    function updateTimeDisplay() {
+      const timeEl = document.getElementById("time");
+      const now = new Date();
+      const formattedTime = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+        timeZone: currentTimezone
+      }).format(now);
+      timeEl.textContent = formattedTime;
+    }
+
+    function startTimeUpdater() {
+      if (timeIntervalId) clearInterval(timeIntervalId);
+      updateTimeDisplay();
+      timeIntervalId = setInterval(updateTimeDisplay, 1000);
+    }
+
+    async function updateOverlayWithLocation(latitude, longitude) {
+      const locationEl = document.getElementById("location");
+      const conditionEl = document.getElementById("condition");
+      const tempEl = document.getElementById("temperature");
+
+      try {
+        console.log('[Overlay] Fetching overlay data for:', latitude, longitude); // Debug log
+        // Reverse geocoding to get city/country
+        const reverseRes = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${openWeatherApiKey}`);
+        const reverseData = await reverseRes.json();
+        const region = reverseData[0]?.name || "Unknown";
+        const country = reverseData[0]?.country || "";
+        setFlagImage(country);
+
+        // Get timezone info
+        const timezoneRes = await fetch(`https://api.timezonedb.com/v2.1/get-time-zone?key=${timezoneDbApiKey}&format=json&by=position&lat=${latitude}&lng=${longitude}`);
+        const timezoneData = await timezoneRes.json();
+        currentTimezone = timezoneData.zoneName || "UTC";
+
+        // Get weather data
+        const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=imperial&appid=${openWeatherApiKey}`);
+        const weatherData = await weatherRes.json();
+
+        const tempF = Math.round(weatherData.main.temp);
+        const condition = capitalize(weatherData.weather[0].description);
+
+        // Display data
+        locationEl.textContent = `${region}, ${country}`;
+        conditionEl.textContent = condition;
+        tempEl.textContent = `${tempF}°F`;
+      } catch (e) {
+        locationEl.textContent = "Unable to load location.";
+        conditionEl.textContent = "--";
+        tempEl.textContent = "--°F";
+        currentTimezone = "UTC";
+        console.error("Error:", e.message);
+      }
+    }
+
+    async function updateOverlayWithCity(city) {
+      const locationEl = document.getElementById("location");
+      const conditionEl = document.getElementById("condition");
+      const tempEl = document.getElementById("temperature");
+      try {
+        // Geocode city to lat/lon
+        const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${openWeatherApiKey}`);
+        const geoData = await geoRes.json();
+        if (!geoData.length) throw new Error("City not found");
+        const { lat, lon, name, country } = geoData[0];
+        setFlagImage(country);
+        lastLat = lat;
+        lastLon = lon;
+        await updateOverlayWithLocation(lat, lon);
+      } catch (e) {
+        locationEl.textContent = "Unable to load city.";
+        setFlagImage(null);
+        conditionEl.textContent = "--";
+        tempEl.textContent = "--°F";
+        currentTimezone = "UTC";
+        console.error("Error:", e.message);
+      }
+    }
+
+    async function fetchAndUpdateOverlay() {
+      try {
+        const res = await fetch(workerEndpoint);
+        const data = await res.json();
+        if (!data || !data.mode) {
+          document.getElementById("location").innerHTML = 'Overlay not configured. <a href="settings.html" style="color:#90caf9;">Configure here</a>.';
+          setFlagImage(null);
+          return;
+        }
+        // Only update if mode/value changed
+        if (data.mode === lastMode && JSON.stringify(data) === JSON.stringify(lastValue)) return;
+        lastMode = data.mode;
+        lastValue = data;
+
+        if (data.mode === 'manual' && data.city) {
+          updateOverlayWithCity(data.city);
+          startTimeUpdater();
+        } else if (data.mode === 'rtirl' && data.key && typeof RealtimeIRL !== "undefined") {
+          // Remove previous listener if any
+          if (rtirlListener && rtirlListener.remove) rtirlListener.remove();
+          // Add new listener
+          rtirlListener = RealtimeIRL.forPullKey(data.key).addLocationListener(function ({ latitude, longitude }) {
+            console.log('[RTIRL] Location updated:', latitude, longitude); // Debug log
+            if (latitude !== lastLat || longitude !== lastLon) {
+              lastLat = latitude;
+              lastLon = longitude;
+              updateOverlayWithLocation(latitude, longitude);
+              startTimeUpdater();
+            }
+          });
+        } else if (data.mode === 'manual' && !data.city) {
+          document.getElementById("location").innerHTML = 'Manual city not set. <a href="settings.html" style="color:#90caf9;">Set your city here</a>.';
+          setFlagImage(null);
+        } else if (data.mode === 'rtirl' && !data.key) {
+          document.getElementById("location").innerHTML = 'RTIRL key not set. <a href="settings.html" style="color:#90caf9;">Set your key here</a>.';
+          setFlagImage(null);
+        } else {
+          document.getElementById("location").textContent = "Overlay not configured.";
+          setFlagImage(null);
+        }
+      } catch (e) {
+        document.getElementById("location").textContent = "Unable to fetch overlay settings.";
+        setFlagImage(null);
+      }
+    }
+
+    // Initial fetch
+    fetchAndUpdateOverlay();
+    // Poll every 5 seconds
+    setInterval(fetchAndUpdateOverlay, 5000);
+  </script>
+</body>
+</html>

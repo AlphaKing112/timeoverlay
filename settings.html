@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Settings - RTIRL Key</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #181818;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #232323;
+      padding: 32px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px #0008;
+      min-width: 0;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 10px;
+      border-radius: 4px;
+      border: none;
+      margin-bottom: 16px;
+      font-size: 18px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 14px 20px;
+      border: none;
+      border-radius: 4px;
+      background: #4caf50;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .success {
+      color: #4caf50;
+      margin-top: 12px;
+      font-size: 15px;
+    }
+    a {
+      color: #90caf9;
+      text-decoration: none;
+      display: block;
+      margin-top: 24px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Overlay Settings</h2>
+    <div style="display:flex;gap:10px;margin-bottom:18px;">
+      <button id="modeRTIRL" type="button">Use RTIRL Key</button>
+      <button id="modeManual" type="button">Manual City Input</button>
+    </div>
+    <form id="rtirlForm" style="display:none;">
+      <label for="rtirlKey">RTIRL Pull Key:</label>
+      <input type="text" id="rtirlKey" name="rtirlKey" required autocomplete="off" inputmode="text" />
+      <button type="submit">Save Key</button>
+    </form>
+    <form id="cityForm" style="display:none;">
+      <label for="manualCity">City Name:</label>
+      <input type="text" id="manualCity" name="manualCity" required autocomplete="off" inputmode="text" placeholder="e.g. Paris, FR" />
+      <button type="submit">Save City</button>
+    </form>
+    <button id="removeKeyBtn" style="margin-top:12px;background:#e53935;display:none;">Remove Key</button>
+    <button id="removeCityBtn" style="margin-top:12px;background:#e53935;display:none;">Remove City</button>
+    <div class="success" id="successMsg" style="display:none;">Saved! You can now return to the overlay.</div>
+    <div class="success" id="removeMsg" style="display:none;color:#e53935;">Removed.</div>
+    <a href="index.html">← Back to Overlay</a>
+  </div>
+  <script>
+    // Helper to update mode UI
+    function updateModeUI(mode) {
+      document.getElementById('modeRTIRL').style.background = mode === 'rtirl' ? '#1976d2' : '';
+      document.getElementById('modeManual').style.background = mode === 'manual' ? '#1976d2' : '';
+      document.getElementById('rtirlForm').style.display = mode === 'rtirl' ? '' : 'none';
+      document.getElementById('removeKeyBtn').style.display = mode === 'rtirl' ? '' : 'none';
+      document.getElementById('cityForm').style.display = mode === 'manual' ? '' : 'none';
+      document.getElementById('removeCityBtn').style.display = mode === 'manual' ? '' : 'none';
+    }
+    // Load mode from storage
+    let mode = localStorage.getItem('overlayMode') || 'rtirl';
+    updateModeUI(mode);
+    // Set up mode buttons
+    document.getElementById('modeRTIRL').onclick = function() {
+      mode = 'rtirl';
+      localStorage.setItem('overlayMode', 'rtirl');
+      updateModeUI('rtirl');
+      // Remove manual city if switching
+      localStorage.removeItem('manualCity');
+      document.getElementById('manualCity').value = '';
+      document.getElementById('removeMsg').style.display = 'none';
+      document.getElementById('successMsg').style.display = 'none';
+    };
+    document.getElementById('modeManual').onclick = function() {
+      mode = 'manual';
+      localStorage.setItem('overlayMode', 'manual');
+      updateModeUI('manual');
+      // Remove RTIRL key if switching
+      localStorage.removeItem('rtirlPullKey');
+      document.getElementById('rtirlKey').value = '';
+      document.getElementById('removeMsg').style.display = 'none';
+      document.getElementById('successMsg').style.display = 'none';
+    };
+    // RTIRL form
+    document.getElementById('rtirlKey').value = localStorage.getItem('rtirlPullKey') || '';
+    document.getElementById('rtirlForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const key = document.getElementById('rtirlKey').value.trim();
+      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'rtirl', key })
+      });
+      document.getElementById('successMsg').style.display = 'block';
+      document.getElementById('removeMsg').style.display = 'none';
+    });
+    // Remove key button
+    document.getElementById('removeKeyBtn').onclick = async function() {
+      document.getElementById('rtirlKey').value = '';
+      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'rtirl', key: null })
+      });
+      document.getElementById('removeMsg').style.display = 'block';
+      document.getElementById('successMsg').style.display = 'none';
+    };
+    // Manual city form
+    document.getElementById('manualCity').value = localStorage.getItem('manualCity') || '';
+    document.getElementById('cityForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const city = document.getElementById('manualCity').value.trim();
+      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'manual', city })
+      });
+      document.getElementById('successMsg').style.display = 'block';
+      document.getElementById('removeMsg').style.display = 'none';
+    });
+    // Remove city button
+    document.getElementById('removeCityBtn').onclick = async function() {
+      document.getElementById('manualCity').value = '';
+      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'manual', city: null })
+      });
+      document.getElementById('removeMsg').style.display = 'block';
+      document.getElementById('successMsg').style.display = 'none';
+    };
+    // Auto-focus input on load
+    window.onload = function() {
+      if (mode === 'rtirl') {
+        document.getElementById('rtirlKey').focus();
+      } else {
+        document.getElementById('manualCity').focus();
+      }
+    };
+  </script>
+</body>
+</html> 

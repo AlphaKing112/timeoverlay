@@ -126,10 +126,11 @@
     };
     // RTIRL form
     document.getElementById('rtirlKey').value = localStorage.getItem('rtirlPullKey') || '';
+    const workerEndpoint = window.OVERLAY_CONFIG.workerEndpoint;
     document.getElementById('rtirlForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const key = document.getElementById('rtirlKey').value.trim();
-      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+      await fetch(workerEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'rtirl', key })
@@ -140,7 +141,7 @@
     // Remove key button
     document.getElementById('removeKeyBtn').onclick = async function() {
       document.getElementById('rtirlKey').value = '';
-      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+      await fetch(workerEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'rtirl', key: null })
@@ -162,7 +163,7 @@
         const match = cityMatches[idx];
         if (match) {
           // Save city name and coordinates
-          await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+          await fetch(workerEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ mode: 'manual', city: match.place_name, lat: match.center[1], lon: match.center[0] })
@@ -193,7 +194,7 @@
     // Remove city button
     document.getElementById('removeCityBtn').onclick = async function() {
       document.getElementById('manualCity').value = '';
-      await fetch('https://overlay-remote.roboticgamer302.workers.dev/overlay', {
+      await fetch(workerEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'manual', city: null })

@@ -55,7 +55,7 @@
   <script>
     const openWeatherApiKey = window.OVERLAY_CONFIG.openWeatherApiKey;
     const timezoneDbApiKey = window.OVERLAY_CONFIG.timezoneDbApiKey;
-    const workerEndpoint = 'https://overlay-remote.roboticgamer302.workers.dev/overlay';
+    const workerEndpoint = window.OVERLAY_CONFIG.workerEndpoint;
 
     let currentTimezoneOffset = 0; // in seconds
     let timeIntervalId = null;
@@ -225,10 +225,29 @@
       }
     }
 
-    // Initial fetch
-    fetchAndUpdateOverlay();
-    // Poll every 2 seconds for faster updates
-    setInterval(fetchAndUpdateOverlay, 2000);
+    // Polling logic: only poll when page is visible
+    let pollingInterval = null;
+    function startPolling() {
+      if (!pollingInterval) {
+        fetchAndUpdateOverlay();
+        pollingInterval = setInterval(fetchAndUpdateOverlay, 10000);
+      }
+    }
+    function stopPolling() {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    }
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState === "visible") {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    });
+    // Start polling initially
+    startPolling();
   </script>
 </body>
 </html>

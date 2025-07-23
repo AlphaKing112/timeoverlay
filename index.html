@@ -200,7 +200,13 @@
           // Remove previous listener if any
           if (rtirlListener && rtirlListener.remove) rtirlListener.remove();
           // Add new listener
-          rtirlListener = RealtimeIRL.forPullKey(data.key).addLocationListener(function ({ latitude, longitude }) {
+          rtirlListener = RealtimeIRL.forPullKey(data.key).addLocationListener(function (location) {
+            if (!location) {
+              const debugEl = document.getElementById("debug");
+              if (debugEl) debugEl.textContent = '[RTIRL] Waiting for location...';
+              return;
+            }
+            const { latitude, longitude } = location;
             console.log('[RTIRL] Location updated:', latitude, longitude); // Debug log
             if (latitude !== lastLat || longitude !== lastLon) {
               lastLat = latitude;
@@ -230,7 +236,7 @@
     function startPolling() {
       if (!pollingInterval) {
         fetchAndUpdateOverlay();
-        pollingInterval = setInterval(fetchAndUpdateOverlay, 10000);
+        pollingInterval = setInterval(fetchAndUpdateOverlay, 3000);
       }
     }
     function stopPolling() {

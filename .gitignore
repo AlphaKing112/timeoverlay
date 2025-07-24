@@ -23,3 +23,8 @@ config.js
 
 # GitHub Pages custom domain
 CNAME 
+src/index.ts
+test/env.d.ts
+test/index.spec.ts
+test/tsconfig.json
+.vscode/settings.json

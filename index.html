@@ -180,6 +180,7 @@
     }
 
     async function fetchAndUpdateOverlay() {
+      console.debug(`[Overlay] Polling Worker endpoint at ${new Date().toLocaleTimeString()}:`, workerEndpoint);
       try {
         const res = await fetch(workerEndpoint);
         const data = await res.json();
@@ -236,7 +237,7 @@
     function startPolling() {
       if (!pollingInterval) {
         fetchAndUpdateOverlay();
-        pollingInterval = setInterval(fetchAndUpdateOverlay, 3000);
+        pollingInterval = setInterval(fetchAndUpdateOverlay, 15000);
       }
     }
     function stopPolling() {

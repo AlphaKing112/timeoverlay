@@ -30,26 +30,32 @@ A real-time, remotely controlled overlay for OBS (or any stream) that displays y
   };
   ```
 
-### 2. **Deploy the Overlay to Cloudflare Pages**
+### 2. ## How to Deploy Your Own Overlay (Backend + Frontend) on Cloudflare
 
-1. **Push your static site to a GitHub repository.**
-   - Only include: `index.html`, `settings.html`, `config.js`, and any CSS/JS/images.
-   - Do **not** include the `overlay-remote/` Worker directory or dev files.
+You can have your own private overlay by deploying both the backend (Worker) and frontend (Pages) on Cloudflare:
 
-2. **Go to [Cloudflare Pages](https://dash.cloudflare.com/?to=/:account/pages) in your Cloudflare dashboard.**
-   - Click **Create a Project**.
-   - Connect your GitHub account and select your repo.
-   - For **Framework preset**, choose **None** (for plain HTML/JS/CSS).
-   - For **Build command**, leave blank.
-   - For **Build output directory**, use `.` (a single dot, meaning the root folder).
+1. **Deploy the Worker (Backend API)**
+   - Follow the steps in “How to Set Up Your Own Worker Endpoint” above.
+   - This will give you a URL like `https://your-worker.workers.dev/overlay`.
 
-3. **Deploy!**
-   - Cloudflare will build and deploy your site.
-   - You’ll get a URL like `https://your-project.pages.dev/`.
+2. **Deploy the Overlay UI (Frontend) with Cloudflare Pages**
+   - Push your static files (`index.html`, `settings.html`, etc.) to a GitHub repo.
+   - Create a new Cloudflare Pages project and connect your repo.
+   - Use the default settings for a static site (no build command, output directory is `.`).
+   - Your site will be live at `https://your-project.pages.dev/`.
 
-4. **(Optional) Add a custom domain** in the Cloudflare Pages dashboard.
+3. **Connect the Frontend to Your Worker**
+   - In your deployed site’s `config.js`, set:
+     ```js
+     window.OVERLAY_CONFIG = {
+       openWeatherApiKey: "",
+       mapboxApiKey: "",
+       workerEndpoint: "https://your-worker.workers.dev/overlay"
+     };
+     ```
+   - Now your overlay UI will use your own backend for all settings and data.
 
-Your overlay will be live at your Cloudflare Pages URL!
+This approach gives each user their own backend and frontend, fully under their control!
 
 ### 3. **Configure the Overlay**
 - Open `settings.html` from any device
@@ -113,32 +119,6 @@ You can deploy your own Cloudflare Worker to store and serve your overlay settin
 
 Now your overlay and settings pages will use your own Worker endpoint for all data storage and retrieval!
 
-## How to Deploy Your Own Overlay (Backend + Frontend) on Cloudflare
-
-You can have your own private overlay by deploying both the backend (Worker) and frontend (Pages) on Cloudflare:
-
-1. **Deploy the Worker (Backend API)**
-   - Follow the steps in “How to Set Up Your Own Worker Endpoint” above.
-   - This will give you a URL like `https://your-worker.workers.dev/overlay`.
-
-2. **Deploy the Overlay UI (Frontend) with Cloudflare Pages**
-   - Push your static files (`index.html`, `settings.html`, etc.) to a GitHub repo.
-   - Create a new Cloudflare Pages project and connect your repo.
-   - Use the default settings for a static site (no build command, output directory is `.`).
-   - Your site will be live at `https://your-project.pages.dev/`.
-
-3. **Connect the Frontend to Your Worker**
-   - In your deployed site’s `config.js`, set:
-     ```js
-     window.OVERLAY_CONFIG = {
-       openWeatherApiKey: "",
-       mapboxApiKey: "",
-       workerEndpoint: "https://your-worker.workers.dev/overlay"
-     };
-     ```
-   - Now your overlay UI will use your own backend for all settings and data.
-
-This approach gives each user their own backend and frontend, fully under their control!
 
 ## Example API Key Config File
 
